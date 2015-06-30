@@ -29,7 +29,7 @@ class HabitAPI:
         headers.setdefault('x-api-key', self.api_key)
         headers.setdefault('Content-Type', 'application/json')
 
-        response = requests.request(method, url, parameters=parameters, headers=headers)
+        response = requests.request(method, url, params=parameters, headers=headers)
         if response.ok:
             return response.json()
         if response.status_code >= 500:
