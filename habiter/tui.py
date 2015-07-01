@@ -3,11 +3,9 @@ import itertools
 __author__ = 'moskupols'
 
 from habiter import habit_api, models
-from habiter.settings import user_id, api_key
+from habiter.settings import user_id, api_key, ACCEL_QUIT, ACCEL_TOGGLE_LIST_MODE
 import urwid
 
-ACCEL_QUIT = 'qQ'
-ACCEL_TOGGLE_LIST_MODE = 'mM'
 
 class UserInfoBar(urwid.Text):
     def __init__(self, user):
