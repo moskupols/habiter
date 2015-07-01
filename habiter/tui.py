@@ -85,7 +85,7 @@ class DailyListView(TaskListView):
         super().__init__(
             'Dailies',
             [DailyWidget(task) for task in tasks],
-            (TaskListView.no_filter,
+            (self.no_filter,
              (lambda wid: not wid.get_state(), 'due'),
              (lambda wid: wid.get_state(), 'checked')
              )
@@ -96,7 +96,7 @@ class TodoListView(TaskListView):
     def __init__(self, todos):
         super().__init__(
             "To-dos",
-            [TodoWidget(todo) for todo in todos if not todo.completed],
+            [TodoWidget(todo) for todo in todos],
             ((lambda wid: not wid.get_state(), 'due'),
              (lambda wid: wid.get_state(), 'done')
              )
