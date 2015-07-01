@@ -1,5 +1,3 @@
-import copy
-
 __author__ = 'moskupols'
 
 from .habit_api import HabitAPI
