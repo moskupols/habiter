@@ -61,6 +61,11 @@ class MainFrame(urwid.Frame):
         super().__init__(header=UserInfoBar(user), body=TasksView(user), footer=StatusBar())
         self.user = user
 
+    def keypress(self, size, key):
+        if key in 'qQ':
+            raise urwid.ExitMainLoop()
+        return super().keypress(size, key)
+
 
 def run():
     api = habit_api.HabitAPI(user_id, api_key)
