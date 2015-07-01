@@ -17,41 +17,49 @@ class StatusBar(urwid.Text):
         super().__init__(markup, wrap=urwid.CLIP)
 
 
-class TaskView(urwid.Text):
-    def __init__(self, task):
-        super().__init__(task.text)
+class TaskWidgetMixin:
+    def __init__(self, task, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         self.task = task
 
 
-class HabitView(TaskView):
-    pass
+class HabitWidget(TaskWidgetMixin, urwid.SelectableIcon):
+    def __init__(self, habit):
+        super().__init__(habit, text=habit.text)
+        self.habit = habit
 
 
-class DailyView(TaskView):
-    pass
+class DailyWidget(TaskWidgetMixin, urwid.CheckBox):
+    def __init__(self, daily):
+        super().__init__(daily, label=daily.text, state=daily.completed)
+        self.daily = daily
 
 
-class TodoView(TaskView):
-    pass
+class TodoWidget(TaskWidgetMixin, urwid.CheckBox):
+    def __init__(self, todo):
+        super().__init__(todo, label=todo.text, state=todo.completed)
+        self.todo = todo
 
 
-class RewardView(TaskView):
-    pass
+class RewardWidget(TaskWidgetMixin, urwid.Button):
+    def __init__(self, reward):
+        super().__init__(reward, label=reward.text)
+        self.reward = reward
 
 
 class TaskListView(urwid.ListBox):
     def __init__(self, task_views):
-        super().__init__(urwid.SimpleListWalker(task_views))
+        super().__init__(urwid.SimpleFocusListWalker(task_views))
 
 
 class TasksView(urwid.Columns):
     def __init__(self, user):
         self.user = user
         lists = [
-            TaskListView([HabitView(task) for task in user.habits]),
-            TaskListView([DailyView(task) for task in user.dailies]),
-            TaskListView([TodoView(task) for task in user.todos]),
-            TaskListView([RewardView(task) for task in user.rewards])
+            TaskListView([HabitWidget(task) for task in user.habits]),
+            TaskListView([DailyWidget(task) for task in user.dailies]),
+            TaskListView([TodoWidget(task) for task in user.todos]),
+            TaskListView([RewardWidget(task) for task in user.rewards])
         ]
         super().__init__(lists, dividechars=3, min_width=20)
 
