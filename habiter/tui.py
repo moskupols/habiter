@@ -47,18 +47,23 @@ class RewardWidget(TaskWidgetMixin, urwid.Button):
         self.reward = reward
 
 
-class TaskListView(urwid.ListBox):
+class TaskListView(urwid.Frame):
     no_filter = (lambda wid: True, 'all')
 
-    def __init__(self, task_wids, wid_filters=(no_filter,)):
-        super().__init__(urwid.SimpleFocusListWalker([]))
+    def __init__(self, title, task_wids, wid_filters=(no_filter,)):
+        self.header = urwid.Pile([
+            urwid.Text(('bold', title), align=urwid.CENTER),
+            urwid.Divider('-'),
+            ])
+        self.list_box = urwid.ListBox(urwid.SimpleFocusListWalker([]))
+        super().__init__(header=self.header, body=self.list_box)
+
         self.all_task_wids = task_wids
         self.filters_ring = itertools.cycle(wid_filters)
         self.switch_to_next_filter()
 
     def update_view(self, task_wids, wid_filter):
-        self.body.clear()
-        self.body.extend([wid for wid in task_wids if wid_filter(wid)])
+        self.list_box.body[:] = [wid for wid in task_wids if wid_filter(wid)]
 
     def switch_to_next_filter(self):
         self.update_view(self.all_task_wids, next(self.filters_ring)[0])
@@ -72,12 +77,13 @@ class TaskListView(urwid.ListBox):
 
 class HabitListView(TaskListView):
     def __init__(self, tasks):
-        super().__init__([HabitWidget(task) for task in tasks])
+        super().__init__('Habits', [HabitWidget(task) for task in tasks])
 
 
 class DailyListView(TaskListView):
     def __init__(self, tasks):
         super().__init__(
+            'Dailies',
             [DailyWidget(task) for task in tasks],
             (TaskListView.no_filter,
              (lambda wid: not wid.get_state(), 'due'),
@@ -89,15 +95,17 @@ class DailyListView(TaskListView):
 class TodoListView(TaskListView):
     def __init__(self, todos):
         super().__init__(
+            "To-dos",
             [TodoWidget(todo) for todo in todos if not todo.completed],
             ((lambda wid: not wid.get_state(), 'due'),
-             (lambda wid: wid.get_state(), 'done'))
+             (lambda wid: wid.get_state(), 'done')
+             )
         )
 
 
 class RewardListView(TaskListView):
     def __init__(self, tasks):
-        super().__init__([RewardWidget(task) for task in tasks])
+        super().__init__('Rewards', [RewardWidget(task) for task in tasks])
 
 
 class TasksView(urwid.Columns):
