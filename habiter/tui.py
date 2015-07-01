@@ -1,4 +1,4 @@
-from unittest.mock import Mock
+import itertools
 
 __author__ = 'moskupols'
 
@@ -6,10 +6,12 @@ from habiter import habit_api, models
 from habiter.settings import user_id, api_key
 import urwid
 
+ACCEL_QUIT = 'qQ'
+ACCEL_TOGGLE_LIST_MODE = 'mM'
 
 class UserInfoBar(urwid.Text):
     def __init__(self, user):
-        super().__init__(user.name, wrap=urwid.CLIP)
+        super().__init__(user.name, align=urwid.CENTER, wrap=urwid.CLIP)
 
 
 class StatusBar(urwid.Text):
@@ -48,19 +50,68 @@ class RewardWidget(TaskWidgetMixin, urwid.Button):
 
 
 class TaskListView(urwid.ListBox):
-    def __init__(self, task_views):
-        super().__init__(urwid.SimpleFocusListWalker(task_views))
+    no_filter = (lambda wid: True, 'all')
+
+    def __init__(self, task_wids, wid_filters=(no_filter,)):
+        super().__init__(urwid.SimpleFocusListWalker([]))
+        self.all_task_wids = task_wids
+        self.filters_ring = itertools.cycle(wid_filters)
+        self.switch_to_next_filter()
+
+    def update_view(self, task_wids, wid_filter):
+        self.body.clear()
+        self.body.extend([wid for wid in task_wids if wid_filter(wid)])
+
+    def switch_to_next_filter(self):
+        self.update_view(self.all_task_wids, next(self.filters_ring)[0])
+
+    def keypress(self, size, key):
+        if key in ACCEL_TOGGLE_LIST_MODE:
+            self.switch_to_next_filter()
+        else:
+            return super().keypress(size, key)
+
+
+class HabitListView(TaskListView):
+    def __init__(self, tasks):
+        super().__init__([HabitWidget(task) for task in tasks])
+
+
+class DailyListView(TaskListView):
+    def __init__(self, tasks):
+        super().__init__(
+            [DailyWidget(task) for task in tasks],
+            (TaskListView.no_filter,
+             (lambda wid: not wid.get_state(), 'due'),
+             (lambda wid: wid.get_state(), 'checked')
+             )
+        )
+
+
+class TodoListView(TaskListView):
+    def __init__(self, todos):
+        super().__init__(
+            [TodoWidget(todo) for todo in todos if not todo.completed],
+            ((lambda wid: not wid.get_state(), 'due'),
+             (lambda wid: wid.get_state(), 'done'))
+        )
+
+
+class RewardListView(TaskListView):
+    def __init__(self, tasks):
+        super().__init__([RewardWidget(task) for task in tasks])
 
 
 class TasksView(urwid.Columns):
     def __init__(self, user):
         self.user = user
-        lists = [
-            TaskListView([HabitWidget(task) for task in user.habits]),
-            TaskListView([DailyWidget(task) for task in user.dailies]),
-            TaskListView([TodoWidget(task) for task in user.todos]),
-            TaskListView([RewardWidget(task) for task in user.rewards])
-        ]
+        lists = (
+            HabitListView(user.habits),
+            DailyListView(user.dailies),
+            TodoListView(user.todos),
+            RewardListView(user.rewards)
+        )
+        self.habit_list, self.daily_list, self.todo_list, self.reward_list = lists
         super().__init__(lists, dividechars=3, min_width=20)
 
 
@@ -70,7 +121,7 @@ class MainFrame(urwid.Frame):
         self.user = user
 
     def keypress(self, size, key):
-        if key in 'qQ':
+        if key in ACCEL_QUIT:
             raise urwid.ExitMainLoop()
         return super().keypress(size, key)
 
