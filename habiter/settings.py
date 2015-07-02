@@ -5,7 +5,13 @@ except ImportError:
     api_key = '085e09c3-9a28-4828-a9e5-8dfb953f2dea'
 
 palette = (
-    ('list_title', 'bold', ''),
+    ('name', 'bold', ''),
+    ('level', '', ''),
+    ('hp', 'light red', ''),
+    ('exp', 'yellow', ''),
+    ('mp', 'dark cyan', ''),
+    ('gold', 'yellow,bold', ''),
+    ('info_bar', '', ''),
 )
 
 ACCEL_QUIT = 'qQ'

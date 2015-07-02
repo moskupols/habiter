@@ -1,6 +1,5 @@
 import itertools
-
-__author__ = 'moskupols'
+import urwid
 
 from habiter import habit_api, models
 from habiter.settings import (
@@ -9,17 +8,31 @@ from habiter.settings import (
     palette
 )
 
-import urwid
-
 
 class UserInfoBar(urwid.Text):
+    PARTS = (
+        ('name',  '{u.name}'),
+        ('level', '{s.level} level'),
+        ('hp',    '{s.hp}/{s.max_hp} hp'),
+        ('exp',   '{s.exp}/{s.max_exp} exp'),
+        ('mp',    '{s.mp}/{s.max_mp} mp'),
+        ('gold',  '{s.gold:.2f} gold'),
+    )
+
+    @classmethod
+    def info_markup_for(cls, user):
+        def intersperse(lst, sep):
+            seps = [sep] * (len(lst) * 2 - 1)
+            seps[0::2] = lst
+            return seps
+
+        markup = [(part, form.format(u=user, s=user.stats)) for part, form in cls.PARTS]
+        markup = intersperse(markup, ', ')
+        markup = ('info_bar', markup)
+        return markup
+
     def __init__(self, user):
-        super().__init__(
-            ('{name}, {s.level} level, {s.hp}/{s.max_hp} hp, '
-             '{s.exp}/{s.max_exp} exp, {s.mp}/{s.max_mp} mp, '
-             '{s.gold:.2f} gold').format(
-                name=user.name, s=user.stats),
-            align=urwid.CENTER)
+        super().__init__(self.info_markup_for(user), align=urwid.CENTER)
 
 
 class StatusBar(urwid.Text):
@@ -52,8 +65,15 @@ class TodoWidget(TaskWidgetMixin, urwid.CheckBox):
 
 
 class RewardWidget(TaskWidgetMixin, urwid.Button):
+    @classmethod
+    def markup_for(cls, reward):
+        return [
+            ('gold', '({r.value})'.format(r=reward)),
+            ' {r.text}'.format(r=reward),
+        ]
+
     def __init__(self, reward):
-        super().__init__(reward, label='({r.value:2}) {r.text}'.format(r=reward))
+        super().__init__(reward, label=self.markup_for(reward))
         self.reward = reward
 
 
