@@ -80,23 +80,25 @@ class RewardWidget(TaskWidgetMixin, urwid.Button):
 class TaskListView(urwid.LineBox):
     no_filter = (lambda wid: True, 'all')
 
-    def __init__(self, title, task_wids, wid_filters=(no_filter,)):
-        # self.header = urwid.Pile([
-        #     urwid.Text(('list_title', title), align=urwid.CENTER),
-        #     urwid.Divider('-'),
-        #     ])
+    def __init__(self, title, task_wids, filters=(no_filter,)):
         self.list_box = urwid.ListBox(urwid.SimpleFocusListWalker([]))
         super().__init__(self.list_box, title=title)
 
+        self.title = title
         self.all_task_wids = task_wids
-        self.filters_ring = itertools.cycle(wid_filters)
+        self.filters_list = filters
+        self.filters_ring = itertools.cycle(filters)
         self.switch_to_next_filter()
 
     def update_view(self, task_wids, wid_filter):
-        self.list_box.body[:] = [wid for wid in task_wids if wid_filter(wid)]
+        new_title = self.title
+        if len(self.filters_list) > 1:
+            new_title += '(' + wid_filter[1] + ')'
+        self.set_title(new_title)
+        self.list_box.body[:] = [wid for wid in task_wids if wid_filter[0](wid)]
 
     def switch_to_next_filter(self):
-        self.update_view(self.all_task_wids, next(self.filters_ring)[0])
+        self.update_view(self.all_task_wids, next(self.filters_ring))
 
     def keypress(self, size, key):
         if key in ACCEL_TOGGLE_LIST_MODE:
