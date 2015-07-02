@@ -155,6 +155,30 @@ class User:
     def name(self)->str:
         return self.data['profile']['name']
 
+    class Stats:
+        def __init__(self, level, gold, exp, mp, hp, max_exp, max_hp, max_mp):
+            self.level = level
+            self.gold = gold
+            self.exp = exp
+            self.mp = mp
+            self.hp = hp
+            self.max_exp = max_exp
+            self.max_hp = max_hp
+            self.max_mp = max_mp
+
+    @property
+    def stats(self):
+        json = self.data['stats']
+        return self.Stats(
+            level=json['lvl'],
+            gold=json['gp'],
+            exp=json['exp'],
+            mp=json['mp'],
+            hp=json['hp'],
+            max_exp=json['toNextLevel'],
+            max_hp=json['maxHealth'],
+            max_mp=json['maxMP'])
+
     @property
     def habits(self)->tuple:
         return self._habits

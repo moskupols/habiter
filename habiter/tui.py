@@ -3,13 +3,23 @@ import itertools
 __author__ = 'moskupols'
 
 from habiter import habit_api, models
-from habiter.settings import user_id, api_key, ACCEL_QUIT, ACCEL_TOGGLE_LIST_MODE
+from habiter.settings import (
+    user_id, api_key,
+    ACCEL_QUIT, ACCEL_TOGGLE_LIST_MODE,
+    palette
+)
+
 import urwid
 
 
 class UserInfoBar(urwid.Text):
     def __init__(self, user):
-        super().__init__(user.name, align=urwid.CENTER, wrap=urwid.CLIP)
+        super().__init__(
+            ('{name}, {s.level} level, {s.hp}/{s.max_hp} hp, '
+             '{s.exp}/{s.max_exp} exp, {s.mp}/{s.max_mp} mp, '
+             '{s.gold:.2f} gold').format(
+                name=user.name, s=user.stats),
+            align=urwid.CENTER)
 
 
 class StatusBar(urwid.Text):
@@ -43,20 +53,20 @@ class TodoWidget(TaskWidgetMixin, urwid.CheckBox):
 
 class RewardWidget(TaskWidgetMixin, urwid.Button):
     def __init__(self, reward):
-        super().__init__(reward, label=reward.text)
+        super().__init__(reward, label='({r.value:2}) {r.text}'.format(r=reward))
         self.reward = reward
 
 
-class TaskListView(urwid.Frame):
+class TaskListView(urwid.LineBox):
     no_filter = (lambda wid: True, 'all')
 
     def __init__(self, title, task_wids, wid_filters=(no_filter,)):
-        self.header = urwid.Pile([
-            urwid.Text(('bold', title), align=urwid.CENTER),
-            urwid.Divider('-'),
-            ])
+        # self.header = urwid.Pile([
+        #     urwid.Text(('list_title', title), align=urwid.CENTER),
+        #     urwid.Divider('-'),
+        #     ])
         self.list_box = urwid.ListBox(urwid.SimpleFocusListWalker([]))
-        super().__init__(header=self.header, body=self.list_box)
+        super().__init__(self.list_box, title=title)
 
         self.all_task_wids = task_wids
         self.filters_ring = itertools.cycle(wid_filters)
@@ -118,7 +128,7 @@ class TasksView(urwid.Columns):
             RewardListView(user.rewards)
         )
         self.habit_list, self.daily_list, self.todo_list, self.reward_list = lists
-        super().__init__(lists, dividechars=3, min_width=20)
+        super().__init__(lists, dividechars=0, min_width=20)
 
 
 class MainFrame(urwid.Frame):
@@ -141,5 +151,5 @@ def run():
 
     main = MainFrame(user)
 
-    loop = urwid.MainLoop(main, handle_mouse=False)
+    loop = urwid.MainLoop(main, palette=palette, handle_mouse=False)
     loop.run()
