@@ -3,15 +3,28 @@ from habiter.habit_api.exceptions import HabitAPIUnavailableException, HabitAPIE
 
 
 class DelayedOperation:
-    def __init__(self, callback=None):
+    def __init__(self, callback=None, exception_handler=None):
         self.callback = callback
+        self.exception_handler = exception_handler
         self._done = False
         self.result = None
+        self.exception = None
 
     def __call__(self):
-        assert not self._done
-        self.result = self.action()
+        if self.done:
+            return self.result
+
+        try:
+            self.result = self.action()
+        except Exception as e:
+            self.exception = e
+            if self.exception_handler:
+                self.exception_handler(self)
+                return
+            raise
+
         self._done = True
+
         if self.callback:
             self.callback(self)
         return self.result

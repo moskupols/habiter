@@ -7,8 +7,9 @@ DEFAULT_TIMEOUT = 5
 
 
 def _api_call_description(foo):
-    def _make_delayed_request(self, callback=None, *args, **kwargs):
-        return self.call_factory.request(callback=callback, **foo(self, *args, **kwargs))
+    def _make_delayed_request(self, callback=None, exception_handler=None, *args, **kwargs):
+        return self.call_factory.request(
+            callback=callback, exception_handler=exception_handler, **foo(self, *args, **kwargs))
     return update_wrapper(_make_delayed_request, foo)
 
 
