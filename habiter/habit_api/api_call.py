@@ -13,7 +13,7 @@ class DelayedOperation:
         self.result = self.action()
         self._done = True
         if self.callback:
-            self.callback(self.result, self)
+            self.callback(self)
         return self.result
 
     def action(self):
@@ -25,7 +25,7 @@ class DelayedOperation:
 
 
 class DelayedAPICall(DelayedOperation):
-    def __init__(self, request, session, description, timeout=None, postproc=None, **kwargs):
+    def __init__(self, description, request, session, timeout, postproc=None, **kwargs):
         super().__init__(**kwargs)
         self.description = description
         self.session = session
@@ -55,7 +55,7 @@ class DelayedAPICall(DelayedOperation):
 
 
 class DelayedAPICallFactory:
-    def __init__(self, session, api_base_url, timeout=None):
+    def __init__(self, session, api_base_url, timeout):
         self.session = session
         self.timeout = timeout
         self.api_base_url = api_base_url
@@ -63,4 +63,4 @@ class DelayedAPICallFactory:
     def request(self, description, method, path, body=None, params=None, headers=None, **kwargs):
         url = self.api_base_url + path
         request = requests.Request(method, url, json=body, params=params, headers=headers)
-        return DelayedAPICall(request, self.session, description, timeout=self.timeout, **kwargs)
+        return DelayedAPICall(description, request, self.session, self.timeout, **kwargs)

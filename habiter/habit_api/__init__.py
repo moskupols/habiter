@@ -1,6 +1,6 @@
 from functools import update_wrapper
 import requests
-from habiter.habit_api.operations import DelayedAPICallFactory
+from habiter.habit_api.api_call import DelayedAPICallFactory
 
 DEFAULT_API_URL = 'https://habitrpg.com/api/v2/'
 DEFAULT_TIMEOUT = 5
@@ -59,6 +59,22 @@ class AuthorizedHabitAPI(HabitAPI):
         }
 
     @_api_call_description
+    def toggle_sleep(self):
+        return {
+            'method': 'post',
+            'path': 'user/sleep',
+            'description': 'toggle sleep',
+        }
+
+    @_api_call_description
+    def rebirth(self):
+        return {
+            'method': 'post',
+            'path': 'user/rebirth',
+            'description': 'rebirth',
+        }
+
+    @_api_call_description
     def get_tasks(self):
         return {
             'method': 'get',
@@ -71,5 +87,32 @@ class AuthorizedHabitAPI(HabitAPI):
         return {
             'method': 'get',
             'path': 'user/tasks/' + task_id,
-            'description': 'load task with id ' + task_id,
+            'description': 'load task ' + task_id,
+        }
+
+    @_api_call_description
+    def new_task(self, task_data: dict):
+        return {
+            'method': 'post',
+            'path': 'user/tasks/' + task_data['id'],
+            'body': task_data,
+            'description': 'create new task "{}"'.format(task_data['text'])
+        }
+
+    @_api_call_description
+    def update_task(self, task_data: dict):
+        return {
+            'method': 'put',
+            'path': 'user/tasks/' + task_data['id'],
+            'body': task_data,
+            'description': 'update task "{}"'.format(task_data['text'])
+        }
+
+    @_api_call_description
+    def delete_task(self, task_data: dict):
+        return {
+            'method': 'delete',
+            'path': 'user/tasks/' + task_data['id'],
+            'body': task_data,
+            'description': 'delete task "{}"'.format(task_data['text'])
         }
