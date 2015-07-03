@@ -1,6 +1,4 @@
-__author__ = 'moskupols'
-
-from .habit_api import HabitAPI
+from habiter.habit_api import AuthorizedHabitAPI
 
 
 class Task:
@@ -14,7 +12,7 @@ class Task:
     TODO = 'todo'
     REWARD = 'reward'
 
-    def __init__(self, api: HabitAPI, id_or_data):
+    def __init__(self, api: AuthorizedHabitAPI, id_or_data):
         self.api = api
         self._dirty = False
 
@@ -27,13 +25,13 @@ class Task:
 
     def pull(self):
         assert not self._dirty  # TODO: handle transactions better
-        self._data = self.api.request('get', self._relative_url)
+        self._data = self.api.get_task(self.id)()
         self._dirty = False
 
-    def push(self):
-        if self._dirty:
-            self.api.request('put', self._relative_url, object=self._data)
-            self._dirty = False
+    # def push(self):
+    #     if self._dirty:
+    #         self.api._request('put', self._relative_url, object=self._data)
+    #         self._dirty = False
 
     @property
     def _relative_url(self):
@@ -84,7 +82,7 @@ class Daily(Task):
     TYPE = Task.DAILY
     PLURAL = 'dailys'  # yeah
 
-    def __init__(self, api: HabitAPI, id_or_data):
+    def __init__(self, api, id_or_data):
         super().__init__(api, id_or_data)
         if self._data is not None:
             assert self.type == Task.DAILY
@@ -98,7 +96,7 @@ class Todo(Task):
     TYPE = Task.TODO
     PLURAL = 'todos'
 
-    def __init__(self, api: HabitAPI, id_or_data):
+    def __init__(self, api, id_or_data):
         super().__init__(api, id_or_data)
         if self._data is not None:
             assert self.type == Task.TODO
@@ -112,14 +110,14 @@ class Reward(Task):
     TYPE = Task.REWARD
     PLURAL = 'rewards'
 
-    def __init__(self, api: HabitAPI, id_or_data):
+    def __init__(self, api, id_or_data):
         super().__init__(api, id_or_data)
         if self._data is not None:
             assert self.type == Task.REWARD
 
 
 class User:
-    def __init__(self, api: HabitAPI):
+    def __init__(self, api: AuthorizedHabitAPI):
         self.api = api
         self.pull()
 
@@ -134,14 +132,14 @@ class User:
         self._rewards = task_list(Reward)
 
     def pull(self):
-        new_data = self.api.request('get', 'user')
+        new_data = self.api.get_user()()
         self._update_data(new_data)
 
     def pull_tasks(self):
         # for consistency of self._data we have to change it, and only then reload tasks.
         # probably later we'll make it better and less json-based
 
-        new_tasks = self.api.request('get', 'user/tasks')
+        new_tasks = self.api.get_tasks()()
         for klass in (Habit, Daily, Todo, Reward):
             self._data[klass.PLURAL] = [d for d in new_tasks if d['type'] == klass.TYPE]
 

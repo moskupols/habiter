@@ -165,7 +165,7 @@ class MainFrame(urwid.Frame):
 
 
 def run():
-    api = habit_api.HabitAPI(user_id, api_key)
+    api = habit_api.AuthorizedHabitAPI(user_id, api_key)
     user = models.User(api)
 
     # user = Mock()
