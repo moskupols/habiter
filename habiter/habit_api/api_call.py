@@ -64,7 +64,7 @@ class DelayedAPICall(DelayedOperation):
         return self.description
 
     def __repr__(self):
-        return 'RequestOperation({r.method} {r.url} {desc})'.format(r=self.request, desc=self.description)
+        return 'APICall<{r.method} {r.url} {desc}>'.format(r=self.request, desc=self.description)
 
 
 class DelayedAPICallFactory:
