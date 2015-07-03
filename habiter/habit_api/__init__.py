@@ -1,3 +1,4 @@
+from functools import update_wrapper
 import requests
 from habiter.habit_api.operations import DelayedAPIRequestOperationFactory
 
@@ -8,7 +9,7 @@ DEFAULT_TIMEOUT = 5
 def _api_call_description(foo):
     def _make_delayed_request(self, callback=None, *args, **kwargs):
         return self.request_factory.request(callback=callback, **foo(self, *args, **kwargs))
-    return _make_delayed_request
+    return update_wrapper(_make_delayed_request, foo)
 
 
 class HabitAPI:

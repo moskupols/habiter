@@ -28,15 +28,6 @@ class Task:
         self._data = self.api.get_task(self.id)()
         self._dirty = False
 
-    # def push(self):
-    #     if self._dirty:
-    #         self.api._request('put', self._relative_url, object=self._data)
-    #         self._dirty = False
-
-    @property
-    def _relative_url(self):
-        return 'user/tasks/' + self._id
-
     @property
     def data(self):
         if self._data is None:
