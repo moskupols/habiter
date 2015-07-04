@@ -97,7 +97,7 @@ class AuthorizedHabitAPI(HabitAPI):
             'method': 'post',
             'path': 'user/tasks/' + task_data['id'],
             'body': task_data,
-            'description': 'create new task "{}"'.format(task_data['text'])
+            'description': 'create new task "{}"'.format(task_data['text']),
         }
 
     @_api_call_description
@@ -106,7 +106,7 @@ class AuthorizedHabitAPI(HabitAPI):
             'method': 'put',
             'path': 'user/tasks/' + task_data['id'],
             'body': task_data,
-            'description': 'update task "{}"'.format(task_data['text'])
+            'description': 'update task "{}"'.format(task_data['text']),
         }
 
     @_api_call_description
@@ -115,5 +115,13 @@ class AuthorizedHabitAPI(HabitAPI):
             'method': 'delete',
             'path': 'user/tasks/' + task_data['id'],
             'body': task_data,
-            'description': 'delete task "{}"'.format(task_data['text'])
+            'description': 'delete task "{}"'.format(task_data['text']),
+        }
+
+    @_api_call_description
+    def score_task(self, task_id, direction='up'):
+        return {
+            'method': 'post',
+            'path': 'user/tasks/{id}/{dir}'.format(id=task_id, dir=direction),
+            'description': direction + 'score task ' + task_id,
         }
