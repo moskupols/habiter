@@ -82,6 +82,10 @@ class Daily(Task):
     def completed(self)->bool:
         return self.data['completed']
 
+    @property
+    def streak(self)->int:
+        return self.data['streak']
+
 
 class Todo(Task):
     TYPE = Task.TODO

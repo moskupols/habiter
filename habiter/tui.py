@@ -3,9 +3,9 @@ import urwid
 
 from habiter import habit_api, models
 from habiter.settings import (
-    user_id, api_key,
+    USER_ID, API_KEY,
     ACCEL_QUIT, ACCEL_TOGGLE_LIST_MODE,
-    palette
+    VALUE_COLOR_BOUNDS, PALETTE, RESET_TERMINAL_PALETTE,
 )
 
 
@@ -45,22 +45,62 @@ class TaskWidgetMixin:
         super().__init__(*args, **kwargs)
         self.task = task
 
+    @classmethod
+    def value_attr(cls, task):
+        v = task.value
+        bounds = sorted(VALUE_COLOR_BOUNDS)
+        segments = list(zip(bounds[:-1], bounds[1:]))
+        for l, r in segments:
+            if l <= v < r:
+                return 'task-value_{}_{}'.format(l, r)
+        if v < bounds[0]:
+            return 'task-value_' + str(bounds[0])
+        return 'task-value_' + str(bounds[-1])
+
+    @classmethod
+    def value_markup(cls, task):
+        return cls.value_attr(task), '[{}]'.format(round(task.value))
+
 
 class HabitWidget(TaskWidgetMixin, urwid.SelectableIcon):
+    @classmethod
+    def markup_for(cls, habit):
+        plus_minus = '?-+±'[habit.down_available + habit.up_available * 2]
+        return [
+            ('habit-plus_minus', plus_minus), ' ',
+            cls.value_markup(habit), ' ',
+            ('task-text', habit.text),
+        ]
+
     def __init__(self, habit):
-        super().__init__(habit, text=habit.text)
+        super().__init__(habit, text=self.markup_for(habit))
         self.habit = habit
 
 
 class DailyWidget(TaskWidgetMixin, urwid.CheckBox):
+    @classmethod
+    def label_for(cls, daily):
+        return [
+            cls.value_markup(daily),
+            ('daily-streak', '[{}] '.format(daily.streak)) if daily.streak else ' ',
+            ('task-text', daily.text),
+        ]
+
     def __init__(self, daily):
-        super().__init__(daily, label=daily.text, state=daily.completed)
+        super().__init__(daily, label=self.label_for(daily), state=daily.completed)
         self.daily = daily
 
 
 class TodoWidget(TaskWidgetMixin, urwid.CheckBox):
+    @classmethod
+    def label_for(cls, todo):
+        return [
+            cls.value_markup(todo),
+            ('task-text', todo.text),
+        ]
+
     def __init__(self, todo):
-        super().__init__(todo, label=todo.text, state=todo.completed)
+        super().__init__(todo, label=self.label_for(todo), state=todo.completed)
         self.todo = todo
 
 
@@ -68,8 +108,8 @@ class RewardWidget(TaskWidgetMixin, urwid.Button):
     @classmethod
     def markup_for(cls, reward):
         return [
-            ('gold', '({r.value})'.format(r=reward)),
-            ' {r.text}'.format(r=reward),
+            ('gold', '({r.value})'.format(r=reward)), ' ',
+            ('task-text', reward.text),
         ]
 
     def __init__(self, reward):
@@ -156,6 +196,11 @@ class TasksView(urwid.Columns):
 class MainFrame(urwid.Frame):
     def __init__(self, user):
         super().__init__(header=UserInfoBar(user), body=TasksView(user), footer=StatusBar())
+        self._command_map['j'] = self._command_map['down']
+        self._command_map['k'] = self._command_map['up']
+        self._command_map['h'] = self._command_map['left']
+        self._command_map['l'] = self._command_map['right']
+
         self.user = user
 
     def keypress(self, size, key):
@@ -165,7 +210,7 @@ class MainFrame(urwid.Frame):
 
 
 def run():
-    api = habit_api.AuthorizedHabitAPI(user_id, api_key)
+    api = habit_api.AuthorizedHabitAPI(USER_ID, API_KEY)
     user = models.User(api)
 
     # user = Mock()
@@ -173,5 +218,8 @@ def run():
 
     main = MainFrame(user)
 
-    loop = urwid.MainLoop(main, palette=palette, handle_mouse=False)
+    loop = urwid.MainLoop(main, palette=PALETTE, handle_mouse=False)
+    if RESET_TERMINAL_PALETTE:
+        loop.screen.reset_default_terminal_palette()
+
     loop.run()
