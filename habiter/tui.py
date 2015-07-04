@@ -61,6 +61,7 @@ class TaskWidgetMixin:
     def value_markup(cls, task):
         return cls.value_attr(task), '[{}]'.format(round(task.value))
 
+
 class HabitWidget(TaskWidgetMixin, urwid.SelectableIcon):
     @classmethod
     def markup_for(cls, habit):
@@ -195,6 +196,11 @@ class TasksView(urwid.Columns):
 class MainFrame(urwid.Frame):
     def __init__(self, user):
         super().__init__(header=UserInfoBar(user), body=TasksView(user), footer=StatusBar())
+        self._command_map['j'] = self._command_map['down']
+        self._command_map['k'] = self._command_map['up']
+        self._command_map['h'] = self._command_map['left']
+        self._command_map['l'] = self._command_map['right']
+
         self.user = user
 
     def keypress(self, size, key):
