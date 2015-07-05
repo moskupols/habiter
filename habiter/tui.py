@@ -6,7 +6,8 @@ from habiter.settings import (
     USER_ID, API_KEY,
     ACCEL_QUIT, ACCEL_TOGGLE_LIST_MODE,
     VALUE_COLOR_BOUNDS, PALETTE, RESET_TERMINAL_PALETTE,
-)
+    ACCEL_UPDATE_USER)
+from habiter.synchronizer import Synchronizer
 
 
 class UserInfoBar(urwid.Text):
@@ -123,17 +124,21 @@ class RewardWidget(TaskWidgetMixin, urwid.Button):
 class TaskListView(urwid.LineBox):
     no_filter = (lambda wid: True, 'all')
 
-    def __init__(self, title, task_wids, filters=(no_filter,)):
+    def __init__(self, title, tasks, widget_cls, filters=(no_filter,)):
         self.list_box = urwid.ListBox(urwid.SimpleFocusListWalker([]))
         super().__init__(self.list_box, title=title)
 
         self.title = title
-        self.all_task_wids = task_wids
+
+        self.widget_cls = widget_cls
         self.filters_list = filters
         self.filters_ring = itertools.cycle(filters)
-        self.switch_to_next_filter()
+        self.cur_filter = next(self.filters_ring)
 
-    def update_view(self, task_wids, wid_filter):
+        self.all_task_wids = None
+        self.set_tasks(tasks)
+
+    def _update_view(self, task_wids, wid_filter):
         new_title = self.title
         if len(self.filters_list) > 1:
             new_title += '(' + wid_filter[1] + ')'
@@ -141,7 +146,12 @@ class TaskListView(urwid.LineBox):
         self.list_box.body[:] = [wid for wid in task_wids if wid_filter[0](wid)]
 
     def switch_to_next_filter(self):
-        self.update_view(self.all_task_wids, next(self.filters_ring))
+        self.cur_filter = next(self.filters_ring)
+        self._update_view(self.all_task_wids, self.cur_filter)
+
+    def set_tasks(self, tasks):
+        self.all_task_wids = [self.widget_cls(task) for task in tasks]
+        self._update_view(self.all_task_wids, self.cur_filter)
 
     def keypress(self, size, key):
         if key in ACCEL_TOGGLE_LIST_MODE:
@@ -151,46 +161,50 @@ class TaskListView(urwid.LineBox):
 
 
 class HabitListView(TaskListView):
-    def __init__(self, tasks):
-        super().__init__('Habits', [HabitWidget(task) for task in tasks])
+    def __init__(self, user):
+        super().__init__('Habits', user.habits, HabitWidget)
+        urwid.connect_signal(user, 'reset', lambda: self.set_tasks(user.habits))
 
 
 class DailyListView(TaskListView):
-    def __init__(self, tasks):
+    def __init__(self, user):
         super().__init__(
             'Dailies',
-            [DailyWidget(task) for task in tasks],
+            user.dailies, DailyWidget,
             (self.no_filter,
              (lambda wid: not wid.get_state(), 'due'),
              (lambda wid: wid.get_state(), 'checked')
              )
         )
+        urwid.connect_signal(user, 'reset', lambda: self.set_tasks(user.dailies))
 
 
 class TodoListView(TaskListView):
-    def __init__(self, todos):
+    def __init__(self, user):
         super().__init__(
             "To-dos",
-            [TodoWidget(todo) for todo in todos],
+            user.todos, TodoWidget,
             ((lambda wid: not wid.get_state(), 'due'),
              (lambda wid: wid.get_state(), 'done')
              )
         )
+        urwid.connect_signal(user, 'reset', lambda: self.set_tasks(user.todos))
 
 
 class RewardListView(TaskListView):
-    def __init__(self, tasks):
-        super().__init__('Rewards', [RewardWidget(task) for task in tasks])
+    def __init__(self, user):
+        super().__init__('Rewards', user.rewards, RewardWidget)
+        urwid.connect_signal(user, 'reset', lambda: self.set_tasks(user.todos))
 
 
 class TasksView(urwid.Columns):
     def __init__(self, user):
         self.user = user
         lists = (
-            HabitListView(user.habits),
-            DailyListView(user.dailies),
-            TodoListView(user.todos),
-            RewardListView(user.rewards)
+            HabitListView(user),
+            DailyListView(user),
+            TodoListView(user),
+            RewardListView(user)
         )
         self.habit_list, self.daily_list, self.todo_list, self.reward_list = lists
         super().__init__(lists, dividechars=0, min_width=20)
@@ -198,7 +212,10 @@ class TasksView(urwid.Columns):
 
 class MainFrame(urwid.Frame):
     def __init__(self, user):
-        super().__init__(header=UserInfoBar(user), body=TasksView(user), footer=StatusBar())
+        self.info_bar = UserInfoBar(user)
+        self.tasks_view = TasksView(user)
+        self.status_bar = StatusBar()
+        super().__init__(header=self.info_bar, body=self.tasks_view, footer=self.status_bar)
         self._command_map['j'] = self._command_map['down']
         self._command_map['k'] = self._command_map['up']
         self._command_map['h'] = self._command_map['left']
@@ -207,14 +224,17 @@ class MainFrame(urwid.Frame):
         self.user = user
 
     def keypress(self, size, key):
+        self.get_footer().set_text(key)
         if key in ACCEL_QUIT:
             raise urwid.ExitMainLoop()
+        if key in ACCEL_UPDATE_USER:
+            self.user.pull()
         return super().keypress(size, key)
 
 
 def run():
     api = habit_api.AuthorizedHabitAPI(USER_ID, API_KEY)
-    user = models.User(api)
+    user = models.User(api, Synchronizer())
 
     # user = Mock()
     # user.name = 'mocked name'

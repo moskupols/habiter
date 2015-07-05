@@ -5,7 +5,6 @@ from habiter.habit_api import AuthorizedHabitAPI
 from habiter.utils import signalling
 
 
-@signalling(['update'])
 class Task:
     """
     Task model.
@@ -60,7 +59,7 @@ class Task:
     def value(self)->float:
         return self.data.get('value')
 
-
+@signalling(['update'])
 class Habit(Task):
     type = Task.HABIT
     USER_ENTRY = 'habits'
@@ -77,6 +76,7 @@ class Habit(Task):
         return self.data.get('down')
 
 
+@signalling(['update'])
 class Daily(Task):
     type = Task.DAILY
     USER_ENTRY = 'dailys'  # yeah
@@ -93,6 +93,7 @@ class Daily(Task):
         return self.data.get('streak')
 
 
+@signalling(['update'])
 class Todo(Task):
     type = Task.TODO
     USER_ENTRY = 'todos'
@@ -105,6 +106,7 @@ class Todo(Task):
         return self.data.get('completed')
 
 
+@signalling(['update'])
 class Reward(Task):
     type = Task.REWARD
     USER_ENTRY = 'rewards'
@@ -115,7 +117,7 @@ class Reward(Task):
 
 @signalling(['reset'])
 class User:
-    def __init__(self, api: AuthorizedHabitAPI, synchronizer=None):
+    def __init__(self, api: AuthorizedHabitAPI, synchronizer):
         self.api = api
         self.synchronizer = synchronizer
 
@@ -177,6 +179,11 @@ class User:
 
         urwid.emit_signal(self, 'reset')
 
+    def pull(self):
+        deferred = self.api.get_user()
+        deferred.add_action(self._reset_data, prev_result=True)
+        self.synchronizer.add_call(deferred)
+
     @property
     def data(self)->dict:
         return self._data
@@ -206,16 +213,16 @@ class User:
 
     @property
     def habits(self):
-        return self._habits.items()
+        return self._habits.values()
 
     @property
     def dailies(self):
-        return self._dailies.items()
+        return self._dailies.values()
 
     @property
     def todos(self):
-        return self._todos.items()
+        return self._todos.values()
 
     @property
     def rewards(self):
-        return self._rewards.items()
+        return self._rewards.values()

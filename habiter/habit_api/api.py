@@ -1,6 +1,6 @@
 from functools import update_wrapper
 import requests
-from habiter.habit_api.api_call import DeferredAPICallFactory
+from habiter.habit_api.api_call import DeferredAPICallFactory, DeferredAPICall
 
 DEFAULT_API_URL = 'https://habitrpg.com/api/v2/'
 DEFAULT_TIMEOUT = 5
@@ -24,7 +24,7 @@ class HabitAPI:
         self.call_factory = call_factory_factory(self.session, timeout=timeout, api_base_url=api_url)
 
     @_api_call_description
-    def status(self):
+    def status(self)->DeferredAPICall:
         return {
             'method': 'get',
             'path': 'status',
@@ -33,7 +33,7 @@ class HabitAPI:
         }
 
     @_api_call_description
-    def content(self):
+    def content(self)->DeferredAPICall:
         return {
             'method': 'get',
             'path': 'content',
@@ -52,7 +52,7 @@ class AuthorizedHabitAPI(HabitAPI):
         self.api_key = api_key
 
     @_api_call_description
-    def get_user(self):
+    def get_user(self)->DeferredAPICall:
         return {
             'method': 'get',
             'path': 'user',
@@ -60,7 +60,7 @@ class AuthorizedHabitAPI(HabitAPI):
         }
 
     @_api_call_description
-    def toggle_sleep(self):
+    def toggle_sleep(self)->DeferredAPICall:
         return {
             'method': 'post',
             'path': 'user/sleep',
@@ -68,7 +68,7 @@ class AuthorizedHabitAPI(HabitAPI):
         }
 
     @_api_call_description
-    def rebirth(self):
+    def rebirth(self)->DeferredAPICall:
         return {
             'method': 'post',
             'path': 'user/rebirth',
@@ -76,7 +76,7 @@ class AuthorizedHabitAPI(HabitAPI):
         }
 
     @_api_call_description
-    def get_tasks(self):
+    def get_tasks(self)->DeferredAPICall:
         return {
             'method': 'get',
             'path': 'user/tasks',
@@ -84,7 +84,7 @@ class AuthorizedHabitAPI(HabitAPI):
         }
 
     @_api_call_description
-    def get_task(self, task_id):
+    def get_task(self, task_id)->DeferredAPICall:
         return {
             'method': 'get',
             'path': 'user/tasks/' + task_id,
@@ -92,7 +92,7 @@ class AuthorizedHabitAPI(HabitAPI):
         }
 
     @_api_call_description
-    def new_task(self, task_data: dict):
+    def new_task(self, task_data: dict)->DeferredAPICall:
         return {
             'method': 'post',
             'path': 'user/tasks/' + task_data['id'],
@@ -101,7 +101,7 @@ class AuthorizedHabitAPI(HabitAPI):
         }
 
     @_api_call_description
-    def update_task(self, task_data: dict):
+    def update_task(self, task_data: dict)->DeferredAPICall:
         return {
             'method': 'put',
             'path': 'user/tasks/' + task_data['id'],
@@ -110,7 +110,7 @@ class AuthorizedHabitAPI(HabitAPI):
         }
 
     @_api_call_description
-    def delete_task(self, task_data: dict):
+    def delete_task(self, task_data: dict)->DeferredAPICall:
         return {
             'method': 'delete',
             'path': 'user/tasks/' + task_data['id'],
@@ -119,7 +119,7 @@ class AuthorizedHabitAPI(HabitAPI):
         }
 
     @_api_call_description
-    def score_task(self, task_id, direction='up'):
+    def score_task(self, task_id, direction='up')->DeferredAPICall:
         return {
             'method': 'post',
             'path': 'user/tasks/{id}/{dir}'.format(id=task_id, dir=direction),
