@@ -117,6 +117,12 @@ class Daily(Task):
     def streak(self) ->int:
         return self.data.get('streak')
 
+    @completed.setter
+    def completed(self, new_state):
+        if new_state != self.completed:
+            self.data['completed'] = new_state
+            self.score(('down', 'up')[new_state])
+
 
 @signalling(['update'])
 class Todo(Task):
@@ -129,6 +135,12 @@ class Todo(Task):
     @property
     def completed(self) ->bool:
         return self.data.get('completed')
+
+    @completed.setter
+    def completed(self, new_state):
+        if new_state != self.completed:
+            self.data['completed'] = new_state
+            self.score(('down', 'up')[new_state])
 
 
 @signalling(['update'])
