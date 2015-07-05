@@ -21,6 +21,9 @@ class UserInfoBar(urwid.Text):
 
     @classmethod
     def info_markup_for(cls, user):
+        if not user.stats:
+            return ''
+
         def intersperse(lst, sep):
             seps = [sep] * (len(lst) * 2 - 1)
             seps[0::2] = lst

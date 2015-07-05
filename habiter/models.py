@@ -1,6 +1,11 @@
+from collections import ChainMap, OrderedDict
+import urwid
+
 from habiter.habit_api import AuthorizedHabitAPI
+from habiter.utils import signalling
 
 
+@signalling(['update'])
 class Task:
     """
     Task model.
@@ -12,133 +17,165 @@ class Task:
     TODO = 'todo'
     REWARD = 'reward'
 
-    def __init__(self, api: AuthorizedHabitAPI, id_or_data):
-        self.api = api
-        self._dirty = False
+    def __init__(self, user: 'User', id_or_data):
+        self.user = user
+        self._data = {}
+        self._id = None
 
-        if isinstance(id_or_data, dict):
-            self._data = id_or_data
-            self._id = self._data['id']
-        else:
-            self._data = None
-            self._id = id_or_data
+        if id_or_data is not None:
+            if isinstance(id_or_data, dict):
+                self.update_data(id_or_data, sync=False)
+            else:
+                self._id = id_or_data
+
+    def update_data(self, data: dict, sync=True):
+        self._data.update(data)
+        self._id = self.data.get('id')
+
+        t = self.data.get('type')
+        assert not t or t == self.type
+
+        urwid.emit_signal(self, 'update')
+
+        if sync:
+            # TODO sync
+            pass
 
     def pull(self):
-        assert not self._dirty  # TODO: handle transactions better
-        self._data = self.api.get_task(self.id)()
-        self._dirty = False
+        raise NotImplementedError
 
     @property
-    def data(self):
-        if self._data is None:
-            self.pull()
+    def data(self)->dict:
         return self._data
 
     @property
-    def id(self):
+    def id(self)->str:
         return self._id
 
     @property
     def text(self)->str:
-        return self.data['text']
-
-    @property
-    def type(self)->str:
-        return self.data['type']
+        return self.data.get('text')
 
     @property
     def value(self)->float:
-        return self.data['value']
+        return self.data.get('value')
 
 
 class Habit(Task):
-    TYPE = Task.HABIT
-    PLURAL = 'habits'
+    type = Task.HABIT
+    USER_ENTRY = 'habits'
 
-    def __init__(self, api, id_or_data):
-        super().__init__(api, id_or_data)
-        if self._data is not None:
-            assert self.type == Task.HABIT
+    def __init__(self, user, id_or_data=None):
+        super().__init__(user, id_or_data)
 
     @property
     def up_available(self)->bool:
-        return self.data['up']
+        return self.data.get('up')
 
     @property
     def down_available(self)->bool:
-        return self.data['down']
+        return self.data.get('down')
 
 
 class Daily(Task):
-    TYPE = Task.DAILY
-    PLURAL = 'dailys'  # yeah
+    type = Task.DAILY
+    USER_ENTRY = 'dailys'  # yeah
 
-    def __init__(self, api, id_or_data):
-        super().__init__(api, id_or_data)
-        if self._data is not None:
-            assert self.type == Task.DAILY
+    def __init__(self, user, id_or_data=None):
+        super().__init__(user, id_or_data)
 
     @property
     def completed(self)->bool:
-        return self.data['completed']
+        return self.data.get('completed')
 
     @property
     def streak(self)->int:
-        return self.data['streak']
+        return self.data.get('streak')
 
 
 class Todo(Task):
-    TYPE = Task.TODO
-    PLURAL = 'todos'
+    type = Task.TODO
+    USER_ENTRY = 'todos'
 
-    def __init__(self, api, id_or_data):
-        super().__init__(api, id_or_data)
-        if self._data is not None:
-            assert self.type == Task.TODO
+    def __init__(self, user, id_or_data=None):
+        super().__init__(user, id_or_data)
 
     @property
     def completed(self)->bool:
-        return self.data['completed']
+        return self.data.get('completed')
 
 
 class Reward(Task):
-    TYPE = Task.REWARD
-    PLURAL = 'rewards'
+    type = Task.REWARD
+    USER_ENTRY = 'rewards'
 
-    def __init__(self, api, id_or_data):
-        super().__init__(api, id_or_data)
-        if self._data is not None:
-            assert self.type == Task.REWARD
+    def __init__(self, user, id_or_data=None):
+        super().__init__(user, id_or_data)
 
 
+@signalling(['reset'])
 class User:
-    def __init__(self, api: AuthorizedHabitAPI):
+    def __init__(self, api: AuthorizedHabitAPI, synchronizer=None):
         self.api = api
-        self.pull()
+        self.synchronizer = synchronizer
 
-    def _update_data(self, new_data):
+        self._data = {}
+
+        self._habits = OrderedDict()
+        self._dailies = OrderedDict()
+        self._todos = OrderedDict()
+        self._rewards = OrderedDict()
+
+        self._tasks_dicts = {
+            Habit.USER_ENTRY: self._habits,
+            Habit.type: self._habits,
+            Daily.USER_ENTRY: self._dailies,
+            Daily.type: self._dailies,
+            Todo.USER_ENTRY: self._todos,
+            Todo.type: self._todos,
+            Reward.USER_ENTRY: self._rewards,
+            Reward.type: self._rewards
+        }
+
+        self._tasks = ChainMap(self._habits, self._dailies, self._todos, self._rewards)
+
+    def _bind_task(self, task):
+        assert task.id not in self._tasks
+        urwid.connect_signal(task, 'update', self._update_task_data, weak_args=(task,))
+        self._tasks_dicts[task.type][task.id] = task
+
+    def _unbind_task(self, task):
+        assert task.id in self._tasks
+        urwid.disconnect_signal(task, 'update', self._update_task_data, weak_args=(task,))
+        self._tasks_dicts[task.type].pop(task.id)
+
+    def _task_for_data(self, data):
+        for cls in (Habit, Daily, Todo, Reward):
+            if cls.type == data.get('type'):
+                return cls(self, data)
+        assert False, 'unknown task type "{}"'.format(data.get('type'))
+
+    def _update_task_data(self, new_task: Task):
+        assert new_task.user is self
+        self._data[new_task.USER_ENTRY][new_task.id] = new_task.data
+
+    def get_task(self, task_id):
+        return self._tasks.get(task_id)
+
+    def _reset_data(self, new_data):
+        # TODO: proper update
+        self._todos.clear()
+        self._dailies.clear()
+        self._rewards.clear()
+        self._habits.clear()
+
         self._data = new_data
+        if new_data:
+            for cls in (Habit, Daily, Todo, Reward):
+                for task_data in new_data[cls.USER_ENTRY]:
+                    self._bind_task(self._task_for_data(task_data))
 
-        def task_list(klass):
-            return tuple(klass(self.api, task) for task in new_data[klass.PLURAL])
-        self._habits = task_list(Habit)
-        self._dailies = task_list(Daily)
-        self._todos = task_list(Todo)
-        self._rewards = task_list(Reward)
-
-    def pull(self):
-        new_data = self.api.get_user()()
-        self._update_data(new_data)
-
-    def pull_tasks(self):
-        # for consistency of self._data we have to change it, and only then reload tasks.
-        # probably later we'll make it better and less json-based
-
-        new_tasks = self.api.get_tasks()()
-        for klass in (Habit, Daily, Todo, Reward):
-            self._data[klass.PLURAL] = [d for d in new_tasks if d['type'] == klass.TYPE]
-
-        self._update_data(self._data)
+        urwid.emit_signal(self, 'reset')
 
     @property
     def data(self)->dict:
@@ -146,7 +183,7 @@ class User:
 
     @property
     def name(self)->str:
-        return self.data['profile']['name']
+        return self.data.get('profile', {}).get('name')
 
     class Stats:
         def __init__(self, level, gold, exp, mp, hp, max_exp, max_hp, max_mp):
@@ -161,29 +198,24 @@ class User:
 
     @property
     def stats(self):
-        json = self.data['stats']
+        json = self.data.get('stats')
+        if not json:
+            return None
         return self.Stats(
-            level=json['lvl'],
-            gold=json['gp'],
-            exp=json['exp'],
-            mp=json['mp'],
-            hp=json['hp'],
-            max_exp=json['toNextLevel'],
-            max_hp=json['maxHealth'],
-            max_mp=json['maxMP'])
+            *map(json.get, ('lvl', 'gp', 'exp', 'mp', 'hp', 'toNextLevel', 'maxHealth', 'maxMP')))
 
     @property
-    def habits(self)->tuple:
-        return self._habits
+    def habits(self):
+        return self._habits.items()
 
     @property
-    def dailies(self)->tuple:
-        return self._dailies
+    def dailies(self):
+        return self._dailies.items()
 
     @property
-    def todos(self)->tuple:
-        return self._todos
+    def todos(self):
+        return self._todos.items()
 
     @property
-    def rewards(self)->tuple:
-        return self._rewards
+    def rewards(self):
+        return self._rewards.items()
