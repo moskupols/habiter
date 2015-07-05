@@ -51,7 +51,31 @@ class HabitWidget(TaskWidgetMixin, urwid.SelectableIcon):
             return super().keypress(size, key)
 
 
-class DailyWidget(TaskWidgetMixin, urwid.CheckBox):
+class CheckBoxBasedTaskWidget(TaskWidgetMixin, urwid.CheckBox):
+    def __init__(self, task):
+        super().__init__(task, label=self.label_for(task), state=task.completed,
+                         on_state_change=self.on_checkbox_toggle)
+        urwid.connect_signal(task, 'update', self.on_model_update)
+
+    @classmethod
+    def value_attr(cls, task):
+        if task.completed:
+            return 'task-completed'
+        return super().value_attr(task)
+
+    @classmethod
+    def label_for(cls, task):
+        raise NotImplementedError
+
+    def on_model_update(self):
+        self.set_label(self.label_for(self.task))
+        self.set_state(self.task.completed)
+
+    def on_checkbox_toggle(self, _, new_state):
+        self.task.completed = new_state
+
+
+class DailyWidget(CheckBoxBasedTaskWidget):
     @classmethod
     def label_for(cls, daily):
         return [
@@ -61,21 +85,11 @@ class DailyWidget(TaskWidgetMixin, urwid.CheckBox):
         ]
 
     def __init__(self, daily):
-        super().__init__(daily, label=self.label_for(daily), state=daily.completed,
-                         on_state_change=self.on_checkbox_toggle)
+        super().__init__(daily)
         self.daily = daily
 
-        urwid.connect_signal(daily, 'update', self.on_model_update)
 
-    def on_model_update(self):
-        self.set_label(self.label_for(self.daily))
-        self.set_state(self.daily.completed)
-
-    def on_checkbox_toggle(self, _, new_state):
-        self.daily.completed = new_state
-
-
-class TodoWidget(TaskWidgetMixin, urwid.CheckBox):
+class TodoWidget(CheckBoxBasedTaskWidget):
     @classmethod
     def label_for(cls, todo):
         return [
@@ -84,17 +98,8 @@ class TodoWidget(TaskWidgetMixin, urwid.CheckBox):
         ]
 
     def __init__(self, todo):
-        super().__init__(todo, label=self.label_for(todo), state=todo.completed,
-                         on_state_change=self.on_checkbox_toggle)
+        super().__init__(todo)
         self.todo = todo
-        urwid.connect_signal(todo, 'update', self.on_model_update)
-
-    def on_model_update(self):
-        self.set_label(self.label_for(self.todo))
-        self.set_state(self.todo.completed)
-
-    def on_checkbox_toggle(self, _, new_state):
-        self.todo.completed = new_state
 
 
 class RewardWidget(TaskWidgetMixin, urwid.Button):

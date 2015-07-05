@@ -40,6 +40,7 @@ PALETTE = (
     ('task-value_1_5', 'black', 'dark green'),
     ('task-value_5_10', 'white', 'dark cyan'),
     ('task-value_10', 'white', 'dark blue'),
+    ('task-completed', 'dark blue', 'light gray'),
 
     ('habit-plus_minus', 'bold', ''),
 )
