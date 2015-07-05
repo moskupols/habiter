@@ -1,6 +1,7 @@
 import urwid
 
 from habiter.settings import ACCEL_QUIT, ACCEL_UPDATE_USER, ACCEL_SYNC_ONE
+from habiter.tui.deferred import ListView, DueDeferredWidget, DoneDeferredWidget
 from habiter.tui.status_bar import StatusBar
 from habiter.tui.task_list_views import HabitListView, DailyListView, TodoListView, RewardListView
 from habiter.tui.user_info_bar import UserInfoBar
@@ -24,13 +25,15 @@ class MainFrame(urwid.Frame):
         self.info_bar = UserInfoBar(user)
         self.tasks_view = TasksView(user)
 
-        # due_deferred_view = urwid.ListBox(urwid.SimpleListWalker(user.synchronizer.due_calls))
-        # done_deferred_view = urwid.ListBox(urwid.SimpleListWalker(user.synchronizer.done_calls))
-        # deferred_views = urwid.Columns()
+        due_deferred_view = ListView(user.synchronizer.due_calls, DueDeferredWidget)
+        done_deferred_view = ListView(user.synchronizer.done_calls, DoneDeferredWidget)
+        deferred_views = urwid.Columns([due_deferred_view, done_deferred_view])
+
+        body = urwid.Pile([self.tasks_view, deferred_views])
 
         self.status_bar = StatusBar()
 
-        super().__init__(header=self.info_bar, body=self.tasks_view, footer=self.status_bar)
+        super().__init__(header=self.info_bar, body=body, footer=self.status_bar)
 
         self._command_map['j'] = self._command_map['down']
         self._command_map['k'] = self._command_map['up']
