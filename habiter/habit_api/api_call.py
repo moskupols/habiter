@@ -2,51 +2,46 @@ import requests
 from habiter.habit_api.exceptions import HabitAPIUnavailableException, HabitAPIException
 
 
-class DelayedOperation:
-    def __init__(self, callback=None, exception_handler=None):
-        self.callback = callback
-        self.exception_handler = exception_handler
+class Deferred:
+    def __init__(self, action, errback=None, args=(), err_args=()):
+        self.action = action
+        self.args = args
+
+        self.errback = errback
+        self.err_args = err_args
+
         self._done = False
         self.result = None
         self.exception = None
 
     def __call__(self):
-        if self.done:
-            return self.result
-
+        assert not self.done
         try:
-            self.result = self.action()
+            self.result = self.action(*self.args)
+            self._done = True
+            return self.result
         except Exception as e:
             self.exception = e
-            if self.exception_handler:
-                self.exception_handler(self)
+            if self.errback:
+                self.errback(self, *self.err_args)
                 return
             raise
-
-        self._done = True
-
-        if self.callback:
-            self.callback(self)
-        return self.result
-
-    def action(self):
-        raise NotImplementedError
 
     @property
     def done(self):
         return self._done
 
 
-class DelayedAPICall(DelayedOperation):
+class DeferredAPICall(Deferred):
     def __init__(self, description, request, session, timeout, postproc=None, **kwargs):
-        super().__init__(**kwargs)
         self.description = description
         self.session = session
         self.request = request
         self.timeout = timeout
         self.postproc = postproc
+        super().__init__(action=self.__action, **kwargs)
 
-    def action(self):
+    def __action(self):
         prepared = self.session.prepare_request(self.request)
         response = self.session.send(prepared, timeout=self.timeout)
 
@@ -64,10 +59,10 @@ class DelayedAPICall(DelayedOperation):
         return self.description
 
     def __repr__(self):
-        return 'APICall<{r.method} {r.url} {desc}>'.format(r=self.request, desc=self.description)
+        return 'DeferredAPICall<{r.method} {r.url} {desc}>'.format(r=self.request, desc=self.description)
 
 
-class DelayedAPICallFactory:
+class DeferredAPICallFactory:
     def __init__(self, session, api_base_url, timeout):
         self.session = session
         self.timeout = timeout
@@ -76,4 +71,4 @@ class DelayedAPICallFactory:
     def request(self, description, method, path, body=None, params=None, headers=None, **kwargs):
         url = self.api_base_url + path
         request = requests.Request(method, url, json=body, params=params, headers=headers)
-        return DelayedAPICall(description, request, self.session, self.timeout, **kwargs)
+        return DeferredAPICall(description, request, self.session, self.timeout, **kwargs)
