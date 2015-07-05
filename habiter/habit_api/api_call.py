@@ -4,28 +4,28 @@ from habiter.habit_api.exceptions import HabitAPIUnavailableException, HabitAPIE
 
 class Deferred:
     def __init__(self, action, errback=None, args=(), err_args=()):
-        self.action = action
-        self.args = args
-
-        self.errback = errback
-        self.err_args = err_args
+        self.actions = [(action, args, errback, err_args)]
 
         self._done = False
         self.result = None
         self.exception = None
 
+    def add_action(self, action, errback=None, args=(), err_args=()):
+        self.actions.append((action, errback, args, err_args))
+
     def __call__(self):
         assert not self.done
-        try:
-            self.result = self.action(*self.args)
-            self._done = True
-            return self.result
-        except Exception as e:
-            self.exception = e
-            if self.errback:
-                self.errback(self, *self.err_args)
-                return
-            raise
+        for action, args, errback, err_args in self.actions:
+            try:
+                self.result = action(*args)
+            except Exception as e:
+                self.exception = e
+                if errback:
+                    errback(*err_args)
+                    return
+                raise
+        self._done = True
+        return self.result
 
     @property
     def done(self):
