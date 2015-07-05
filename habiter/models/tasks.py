@@ -56,7 +56,7 @@ class Task:
     def score(self, direction: '"up" | "down"'):
         assert direction in ('up', 'down')
         self._update_data({'value': self._data['value'] + (1 if direction == 'up' else -1)})
-        deferred = self.user.api.score_task(self.id, direction)\
+        deferred = self.user.api.score_task(self, direction)\
             .chain_action(self.receive_delta)
         self.user.synchronizer.add_call(deferred)
 
@@ -75,6 +75,9 @@ class Task:
     @property
     def value(self) ->float:
         return self.data.get('value')
+
+    def __str__(self):
+        return self.text or self.id
 
 
 @signalling(['update'])

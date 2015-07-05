@@ -41,6 +41,12 @@ class HabitAPI:
         }
 
 
+def _get_id(task_or_id):
+    if isinstance(task_or_id, str):
+        return task_or_id
+    return task_or_id.id
+
+
 class AuthorizedHabitAPI(HabitAPI):
     def __init__(self, user_id, api_key, api_url=None, timeout=None, **kwargs):
         super().__init__(api_url=api_url, timeout=timeout, **kwargs)
@@ -84,11 +90,11 @@ class AuthorizedHabitAPI(HabitAPI):
         }
 
     @_api_call_description
-    def get_task(self, task_id)->DeferredAPICall:
+    def get_task(self, task_or_id)->DeferredAPICall:
         return {
             'method': 'get',
-            'path': 'user/tasks/' + task_id,
-            'description': 'load task ' + task_id,
+            'path': 'user/tasks/' + _get_id(task_or_id),
+            'description': 'load task "{!s}"'.format(task_or_id),
         }
 
     @_api_call_description
@@ -110,18 +116,17 @@ class AuthorizedHabitAPI(HabitAPI):
         }
 
     @_api_call_description
-    def delete_task(self, task_data: dict)->DeferredAPICall:
+    def delete_task(self, task_or_id)->DeferredAPICall:
         return {
             'method': 'delete',
-            'path': 'user/tasks/' + task_data['id'],
-            'body': task_data,
-            'description': 'delete task "{}"'.format(task_data['text']),
+            'path': 'user/tasks/' + _get_id(task_or_id),
+            'description': 'delete task "{!s}"'.format(task_or_id),
         }
 
     @_api_call_description
-    def score_task(self, task_id, direction='up')->DeferredAPICall:
+    def score_task(self, task_or_id, direction='up')->DeferredAPICall:
         return {
             'method': 'post',
-            'path': 'user/tasks/{id}/{dir}'.format(id=task_id, dir=direction),
-            'description': direction + 'score task ' + task_id,
+            'path': 'user/tasks/{id}/{dir}'.format(id=_get_id(task_or_id), dir=direction),
+            'description': direction + 'score task "{!s}"'.format(task_or_id),
         }
