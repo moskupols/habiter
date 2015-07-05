@@ -10,7 +10,7 @@ class Deferred:
         self.result = None
         self.exception = None
 
-    def add_action(self, action, errback=None, prev_result=True, args=(), err_args=()):
+    def chain_action(self, action, errback=None, prev_result=True, args=(), err_args=())->'Deferred':
         self.actions.append((action, args, errback, err_args, prev_result))
         return self
 

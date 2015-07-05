@@ -11,8 +11,8 @@ class DueDeferredWidget(urwid.WidgetWrap):
 DoneDeferredWidget = DueDeferredWidget
 
 
-class ListView(urwid.ListBox):
+class ListView(urwid.WidgetWrap):
     def __init__(self, list_model, mapping):
         self.list_model = list_model
         self.wid_model = MappingListModelProxy(list_model, mapping, cls=urwid.SimpleListWalker)
-        super().__init__(self.wid_model.list)
+        super().__init__(urwid.ListBox(self.wid_model.list))

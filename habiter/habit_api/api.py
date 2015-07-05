@@ -7,7 +7,7 @@ DEFAULT_TIMEOUT = 5
 
 
 def _api_call_description(foo):
-    def _make_deferred_call(self, errback=None, err_args=(), *args, **kwargs):
+    def _make_deferred_call(self, *args, errback=None, err_args=(), **kwargs):
         return self.call_factory.request(
             errback=errback, err_args=err_args, **foo(self, *args, **kwargs))
     return update_wrapper(_make_deferred_call, foo)

@@ -1,5 +1,5 @@
 import urwid
-from habiter.settings import VALUE_COLOR_BOUNDS
+from habiter.settings import VALUE_COLOR_BOUNDS, ACCEL_HABIT_PLUS, ACCEL_HABIT_MINUS
 
 
 class TaskWidgetMixin:
@@ -21,7 +21,7 @@ class TaskWidgetMixin:
 
     @classmethod
     def value_markup(cls, task):
-        return cls.value_attr(task), '[{}]'.format(round(task.value))
+        return cls.value_attr(task), '[{}]'.format(round(task.value, 3))
 
 
 class HabitWidget(TaskWidgetMixin, urwid.SelectableIcon):
@@ -37,6 +37,18 @@ class HabitWidget(TaskWidgetMixin, urwid.SelectableIcon):
     def __init__(self, habit):
         super().__init__(habit, text=self.markup_for(habit))
         self.habit = habit
+        urwid.connect_signal(habit, 'update', self.on_update)
+
+    def on_update(self):
+        self.set_text(self.markup_for(self.habit))
+
+    def keypress(self, size, key):
+        if key in ACCEL_HABIT_PLUS:
+            self.habit.score('up')
+        elif key in ACCEL_HABIT_MINUS:
+            self.habit.score('down')
+        else:
+            return super().keypress(size, key)
 
 
 class DailyWidget(TaskWidgetMixin, urwid.CheckBox):

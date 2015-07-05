@@ -5,7 +5,7 @@ from habiter.models.tasks import Habit, Daily, Todo, Reward, Task
 from habiter.utils import signalling
 
 
-@signalling(['reset'])
+@signalling(['reset', 'stats_update', 'tmp_effect'])
 class User:
     def __init__(self, api: AuthorizedHabitAPI, synchronizer):
         self.api = api
@@ -49,7 +49,10 @@ class User:
 
     def _update_task_data(self, new_task: Task):
         assert new_task.user is self
-        self._data[new_task.USER_ENTRY][new_task.id] = new_task.data
+        for i, t in enumerate(self._data[new_task.USER_ENTRY]):
+            if t['id'] == new_task.id:
+                self._data[new_task.USER_ENTRY][i] = new_task.data
+                break
 
     def get_task(self, task_id):
         return self._tasks.get(task_id)
@@ -71,8 +74,15 @@ class User:
 
     def pull(self):
         deferred = self.api.get_user()
-        deferred.add_action(self._reset_data, prev_result=True)
+        deferred.chain_action(self._reset_data, prev_result=True)
         self.synchronizer.add_call(deferred)
+
+    def receive_delta(self, delta_data):
+        stats_update = {k: delta_data[k] for k in ('lvl', 'gp', 'exp', 'mp', 'hp')}
+        self._data.setdefault('stats', {}).update(stats_update)
+        urwid.emit_signal(self, 'stats_update')
+        if len(delta_data['_tmp']):
+            urwid.emit_signal(self, 'tmp_effect', delta_data['_tmp'])
 
     @property
     def data(self)->dict:

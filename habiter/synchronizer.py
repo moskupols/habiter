@@ -8,10 +8,7 @@ class Synchronizer:
         self.done_calls = ListModel(deque())
 
     def add_call(self, call):
-        if call.request.method.lower() == 'get':
-            self.due_calls.append(call)
-        else:
-            self.done_calls.append(call)
+        self.due_calls.append(call)
 
     def perform_one_call(self):
         self.due_calls[0]()

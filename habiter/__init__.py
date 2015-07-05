@@ -11,7 +11,7 @@ from . import habit_api, tui
 
 def run():
     api = habit_api.AuthorizedHabitAPI(USER_ID, API_KEY)
-    user = models.user.User(api, Synchronizer())
+    user = models.User(api, Synchronizer())
 
     # user = Mock()
     # user.name = 'mocked name'
