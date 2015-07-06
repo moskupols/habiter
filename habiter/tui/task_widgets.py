@@ -1,5 +1,6 @@
 import urwid
-from habiter.settings import VALUE_COLOR_BOUNDS, ACCEL_HABIT_PLUS, ACCEL_HABIT_MINUS
+
+from habiter.settings import VALUE_COLOR_BOUNDS, ACCEL_HABIT_PLUS, ACCEL_HABIT_MINUS, VALUE_ROUND
 
 
 class TaskWidgetMixin:
@@ -21,26 +22,37 @@ class TaskWidgetMixin:
 
     @classmethod
     def value_markup(cls, task):
-        return cls.value_attr(task), '[{}]'.format(round(task.value, 3))
+        return cls.value_attr(task), '[{}]'.format(round(task.value, VALUE_ROUND))
+
+    @classmethod
+    def text_attr(cls):
+        return 'task-text'
+
+    @classmethod
+    def text_markup(cls, task):
+        return cls.text_attr(), task.text
+
+    @classmethod
+    def task_markup(cls, task):
+        return [
+            cls.value_markup(task), ' ',
+            cls.text_markup(task),
+        ]
 
 
 class HabitWidget(TaskWidgetMixin, urwid.SelectableIcon):
     @classmethod
-    def markup_for(cls, habit):
+    def task_markup(cls, habit):
         plus_minus = '?-+±'[habit.down_available + habit.up_available * 2]
-        return [
-            ('habit-plus_minus', plus_minus), ' ',
-            cls.value_markup(habit), ' ',
-            ('task-text', habit.text),
-        ]
+        return [('habit-plus_minus', plus_minus), ' '] + super().task_markup(habit)
 
     def __init__(self, habit):
-        super().__init__(habit, text=self.markup_for(habit))
+        super().__init__(habit, text=self.task_markup(habit))
         self.habit = habit
         urwid.connect_signal(habit, 'update', self.on_update)
 
     def on_update(self):
-        self.set_text(self.markup_for(self.habit))
+        self.set_text(self.task_markup(self.habit))
 
     def keypress(self, size, key):
         if key in ACCEL_HABIT_PLUS:
@@ -53,7 +65,7 @@ class HabitWidget(TaskWidgetMixin, urwid.SelectableIcon):
 
 class CheckBoxBasedTaskWidget(TaskWidgetMixin, urwid.CheckBox):
     def __init__(self, task):
-        super().__init__(task, label=self.label_for(task), state=task.completed,
+        super().__init__(task, label=self.task_markup(task), state=task.completed,
                          on_state_change=self.on_checkbox_toggle)
         urwid.connect_signal(task, 'update', self.on_model_update)
 
@@ -63,12 +75,8 @@ class CheckBoxBasedTaskWidget(TaskWidgetMixin, urwid.CheckBox):
             return 'task-completed'
         return super().value_attr(task)
 
-    @classmethod
-    def label_for(cls, task):
-        raise NotImplementedError
-
     def on_model_update(self):
-        self.set_label(self.label_for(self.task))
+        self.set_label(self.task_markup(self.task))
         self.set_state(self.task.completed)
 
     def on_checkbox_toggle(self, _, new_state):
@@ -77,11 +85,11 @@ class CheckBoxBasedTaskWidget(TaskWidgetMixin, urwid.CheckBox):
 
 class DailyWidget(CheckBoxBasedTaskWidget):
     @classmethod
-    def label_for(cls, daily):
+    def task_markup(cls, daily):
         return [
             cls.value_markup(daily),
             ('daily-streak', '[{}] '.format(daily.streak)) if daily.streak else ' ',
-            ('task-text', daily.text),
+            cls.text_markup(daily),
         ]
 
     def __init__(self, daily):
@@ -90,13 +98,6 @@ class DailyWidget(CheckBoxBasedTaskWidget):
 
 
 class TodoWidget(CheckBoxBasedTaskWidget):
-    @classmethod
-    def label_for(cls, todo):
-        return [
-            cls.value_markup(todo), ' ',
-            ('task-text', todo.text),
-        ]
-
     def __init__(self, todo):
         super().__init__(todo)
         self.todo = todo
@@ -104,12 +105,9 @@ class TodoWidget(CheckBoxBasedTaskWidget):
 
 class RewardWidget(TaskWidgetMixin, urwid.Button):
     @classmethod
-    def markup_for(cls, reward):
-        return [
-            ('gold', '({r.value})'.format(r=reward)), ' ',
-            ('task-text', reward.text),
-        ]
+    def value_markup(cls, reward):
+        return 'gold', '({r.value})'.format(r=reward)
 
     def __init__(self, reward):
-        super().__init__(reward, label=self.markup_for(reward))
+        super().__init__(reward, label=self.task_markup(reward))
         self.reward = reward

@@ -13,11 +13,15 @@ except ImportError:
     USER_ID = 'c31fdbc0-15c5-44a8-8ef9-c8c8842b0266'
     API_KEY = '085e09c3-9a28-4828-a9e5-8dfb953f2dea'
 
+# the screen is divided in this proportion
+TASK_LIST_HEIGHT_WEIGHT = 4
+DEFERRED_LIST_HEIGHT_WEIGHT = 1
+
+# task values are real numbers, and are rounded for showing in task list
+VALUE_ROUND = 3
+
 # these are used to define colors for task value half-intervals.
 # each half-interval is left-inclusive, right-exclusive.
-#
-# actually task values are real numbers, and are rounded for
-# showing in task list
 VALUE_COLOR_BOUNDS = (
     -10, -5, -0.9, 1, 5, 10,
 )

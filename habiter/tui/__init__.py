@@ -1,6 +1,7 @@
 import urwid
 
-from habiter.settings import ACCEL_QUIT, ACCEL_UPDATE_USER, ACCEL_SYNC_ONE
+from habiter.settings import ACCEL_QUIT, ACCEL_UPDATE_USER, ACCEL_SYNC_ONE, DEFERRED_LIST_HEIGHT_WEIGHT, \
+    TASK_LIST_HEIGHT_WEIGHT
 from habiter.tui.deferred import ListView, DueDeferredWidget, DoneDeferredWidget
 from habiter.tui.status_bar import StatusBar
 from habiter.tui.task_list_views import HabitListView, DailyListView, TodoListView, RewardListView
@@ -29,7 +30,9 @@ class MainFrame(urwid.Frame):
         done_deferred_view = ListView(user.synchronizer.done_calls, DoneDeferredWidget)
         deferred_views = urwid.Columns([due_deferred_view, done_deferred_view])
 
-        body = urwid.Pile([self.tasks_view, deferred_views])
+        body = urwid.Pile([
+            ('weight', TASK_LIST_HEIGHT_WEIGHT, self.tasks_view),
+            ('weight', DEFERRED_LIST_HEIGHT_WEIGHT, deferred_views)])
 
         self.status_bar = StatusBar()
 
@@ -51,5 +54,3 @@ class MainFrame(urwid.Frame):
         if key in ACCEL_SYNC_ONE:
             self.user.synchronizer.perform_one_call()
         return super().keypress(size, key)
-
-

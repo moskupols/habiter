@@ -63,10 +63,10 @@ class MappingListModelProxy(ListModel):
         del self[at]
 
     def _on_setitem(self, at, value):
-        super().__setitem__(at, self.mapping(value))
+        self[at] = self.mapping(value)
 
     def _on_insert(self, at, value):
-        return super().insert(at, self.mapping(value))
+        return self.insert(at, self.mapping(value))
 
     def _on_reset(self):
         self.list[:] = list(map(self.mapping, self.source_model))
