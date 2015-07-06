@@ -2,9 +2,9 @@ import urwid
 
 from habiter.settings import ACCEL_QUIT, ACCEL_UPDATE_USER, ACCEL_SYNC_ONE, DEFERRED_LIST_HEIGHT_WEIGHT, \
     TASK_LIST_HEIGHT_WEIGHT
-from habiter.tui.deferred import ListView, DueDeferredWidget, DoneDeferredWidget
-from habiter.tui.status_bar import StatusBar
+from habiter.tui.deferred_list_views import DueDeferredListView, DoneDeferredListView
 from habiter.tui.task_list_views import HabitListView, DailyListView, TodoListView, RewardListView
+from habiter.tui.status_bar import StatusBar
 from habiter.tui.user_info_bar import UserInfoBar
 
 
@@ -26,8 +26,8 @@ class MainFrame(urwid.Frame):
         self.info_bar = UserInfoBar(user)
         self.tasks_view = TasksView(user)
 
-        due_deferred_view = ListView(user.synchronizer.due_calls, DueDeferredWidget)
-        done_deferred_view = ListView(user.synchronizer.done_calls, DoneDeferredWidget)
+        due_deferred_view = DueDeferredListView(user.synchronizer.due_calls)
+        done_deferred_view = DoneDeferredListView(user.synchronizer.done_calls)
         deferred_views = urwid.Columns([due_deferred_view, done_deferred_view])
 
         body = urwid.Pile([
