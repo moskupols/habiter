@@ -13,7 +13,9 @@ class Task:
     TODO = 'todo'
     REWARD = 'reward'
 
-    def __init__(self, user: 'User', id_or_data):
+    USER_ENTRY = None  # should be filled by subclass, p.e. 'habits'
+
+    def __init__(self, id_or_data, user: 'User'):
         self.user = user
         self._data = {}
         self._id = None
@@ -45,16 +47,19 @@ class Task:
     def update_data(self, data: dict, sync=True):
         self._update_data(data)
         if sync:
+            assert self.user
             data.setdefault('id', self.id)
             deferred = self.user.api.update_task(data).chain_action(self._update_data)
             self.user.synchronizer.add_call(deferred)
 
     def pull(self):
+        assert self.user
         deferred = self.user.api.get_task().chain_action(self._update_data)
         self.user.synchronizer.add_call(deferred)
 
-    def score(self, direction: '"up" | "down"'):
+    def _score(self, direction: '"up" | "down"'):
         assert direction in ('up', 'down')
+        assert self.user
         self._update_data({'value': self._data['value'] + (1 if direction == 'up' else -1)})
         deferred = self.user.api.score_task(self, direction)\
             .chain_action(self.receive_delta)
@@ -85,9 +90,6 @@ class Habit(Task):
     type = Task.HABIT
     USER_ENTRY = 'habits'
 
-    def __init__(self, user, id_or_data=None):
-        super().__init__(user, id_or_data)
-
     @property
     def up_available(self) ->bool:
         return self.data.get('up')
@@ -101,55 +103,39 @@ class Habit(Task):
             return
         if direction == 'down' and not self.down_available:
             return
-        super().score(direction)
+        self._score(direction)
 
 
-@signalling(['update'])
-class Daily(Task):
-    type = Task.DAILY
-    USER_ENTRY = 'dailys'  # yeah
-
-    def __init__(self, user, id_or_data=None):
-        super().__init__(user, id_or_data)
-
+class CompletableTask(Task):
     @property
     def completed(self) ->bool:
         return self.data.get('completed')
+
+    @completed.setter
+    def completed(self, new_state):
+        if new_state != self.completed:
+            self.data['completed'] = new_state
+            # we shouldn't issue sync call here, because it will be done by super with value change
+            self._score(('down', 'up')[new_state])
+
+
+@signalling(['update'])
+class Daily(CompletableTask):
+    type = Task.DAILY
+    USER_ENTRY = 'dailys'  # yeah
 
     @property
     def streak(self) ->int:
         return self.data.get('streak')
 
-    @completed.setter
-    def completed(self, new_state):
-        if new_state != self.completed:
-            self.data['completed'] = new_state
-            self.score(('down', 'up')[new_state])
-
 
 @signalling(['update'])
-class Todo(Task):
+class Todo(CompletableTask):
     type = Task.TODO
     USER_ENTRY = 'todos'
-
-    def __init__(self, user, id_or_data=None):
-        super().__init__(user, id_or_data)
-
-    @property
-    def completed(self) ->bool:
-        return self.data.get('completed')
-
-    @completed.setter
-    def completed(self, new_state):
-        if new_state != self.completed:
-            self.data['completed'] = new_state
-            self.score(('down', 'up')[new_state])
 
 
 @signalling(['update'])
 class Reward(Task):
     type = Task.REWARD
     USER_ENTRY = 'rewards'
-
-    def __init__(self, user, id_or_data=None):
-        super().__init__(user, id_or_data)

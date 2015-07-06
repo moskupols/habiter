@@ -41,10 +41,10 @@ class User:
         urwid.disconnect_signal(task, 'update', self._update_task_data, weak_args=(task,))
         self._tasks_dicts[task.type].pop(task.id)
 
-    def _task_for_data(self, data):
+    def _make_task_for_data(self, data):
         for cls in (Habit, Daily, Todo, Reward):
             if cls.type == data.get('type'):
-                return cls(self, data)
+                return cls(id_or_data=data, user=self)
         assert False, 'unknown task type "{}"'.format(data.get('type'))
 
     def _update_task_data(self, new_task: Task):
@@ -68,7 +68,7 @@ class User:
         if new_data:
             for cls in (Habit, Daily, Todo, Reward):
                 for task_data in new_data[cls.USER_ENTRY]:
-                    self._bind_task(self._task_for_data(task_data))
+                    self._bind_task(self._make_task_for_data(task_data))
 
         urwid.emit_signal(self, 'reset')
 
