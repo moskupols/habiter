@@ -1,6 +1,6 @@
 import itertools
 import urwid
-from habiter.models.list_model import MappingListModelProxy
+from habiter.models.list_model import MappingListProxyModel, FilterListProxyModel
 from habiter.settings import ACCEL_TOGGLE_LIST_MODE
 from habiter.tui.task_widgets import HabitWidget, DailyWidget, TodoWidget, RewardWidget
 
@@ -9,28 +9,27 @@ class TaskListView(urwid.LineBox):
     no_filter = (lambda wid: True, 'all')
 
     def __init__(self, title, tasks, widget_cls, filters=(no_filter,)):
-        self.widget_list_model = \
-            MappingListModelProxy(tasks, widget_cls, cls=urwid.SimpleListWalker)
-
-        super().__init__(urwid.ListBox(self.widget_list_model.list), title=title)
+        # TODO: filters should be task filters, not some widget filters.
+        # it'll help to generalize TaskListView as a subclass of ListView
 
         self.title = title
 
+        self.widget_list_model = FilterListProxyModel(
+            MappingListProxyModel(tasks, widget_cls),
+            filter_=self.no_filter[0],
+            cls=urwid.SimpleListWalker)
+
+        super().__init__(urwid.ListBox(self.widget_list_model.list), title=title)
+
         self.filters_list = filters
         self.filters_ring = itertools.cycle(filters)
-        self.cur_filter = next(self.filters_ring)
-
-    def _update_view(self, task_wids, wid_filter):
-        # new_title = self.title
-        # if len(self.filters_list) > 1:
-        #     new_title += '(' + wid_filter[1] + ')'
-        # self.set_title(new_title)
-        # self.list_box.body[:] = [wid for wid in task_wids if wid_filter[0](wid)]
-        pass
+        self.cur_filter = None
+        self.switch_to_next_filter()
 
     def switch_to_next_filter(self):
         self.cur_filter = next(self.filters_ring)
-        self._update_view(self.all_task_wids, self.cur_filter)
+        self.set_title('{} ({})'.format(self.title, self.cur_filter[1]))
+        self.widget_list_model.set_filter(self.cur_filter[0])
 
     def keypress(self, size, key):
         if key in ACCEL_TOGGLE_LIST_MODE:

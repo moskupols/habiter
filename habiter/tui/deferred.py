@@ -1,5 +1,5 @@
 import urwid
-from habiter.models.list_model import MappingListModelProxy
+from habiter.models.list_model import MappingListProxyModel
 
 
 class DueDeferredWidget(urwid.WidgetWrap):
@@ -14,5 +14,5 @@ DoneDeferredWidget = DueDeferredWidget
 class ListView(urwid.WidgetWrap):
     def __init__(self, list_model, mapping):
         self.list_model = list_model
-        self.wid_model = MappingListModelProxy(list_model, mapping, cls=urwid.SimpleListWalker)
+        self.wid_model = MappingListProxyModel(list_model, mapping, cls=urwid.SimpleListWalker)
         super().__init__(urwid.ListBox(self.wid_model.list))
