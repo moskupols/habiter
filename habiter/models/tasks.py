@@ -139,3 +139,6 @@ class Todo(CompletableTask):
 class Reward(Task):
     type = Task.REWARD
     USER_ENTRY = 'rewards'
+
+TASK_CLASSES = (Habit, Daily, Todo, Reward)
+TASK_TYPES = tuple(cls.type for cls in TASK_CLASSES)

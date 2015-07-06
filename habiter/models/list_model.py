@@ -1,3 +1,4 @@
+import itertools
 import urwid
 from habiter.utils import signalling
 from collections.abc import MutableSequence
@@ -18,10 +19,31 @@ class ListModel(MutableSequence):
     def __getitem__(self, at):
         return self.list[at]
 
+    def __set_at(self, at, value):
+        self.list[at] = value
+        urwid.emit_signal(self, 'update_at', at, value)
+
     def __setitem__(self, key, value):
-        self.list[key] = value
-        if self.list[key] != value:
-            urwid.emit_signal(self, 'update_at', key, value)
+        # based on http://code.activestate.com/recipes/440656-list-mixin/
+        if isinstance(key, slice):
+            start, stop, stride = key.indices(len(self))
+            indices = range(start, stop, stride)
+            if stride != 1:
+                assert len(indices) == len(value)
+                for i, v in zip(indices, value):
+                    self.__set_at(i, v)
+            else:
+                new_indices = range(start, start + len(value))
+                for i, j, v in itertools.zip_longest(indices, new_indices, value):
+                    if i is None:
+                        self.insert(j, v)
+                    elif j is None:
+                        del self[i]
+                    else:
+                        assert i == j
+                        self.__set_at(i, v)
+        else:
+            self.__set_at(key, value)
 
     def __delitem__(self, key):
         del self.list[key]
@@ -46,7 +68,10 @@ class MappingListModelProxy(ListModel):
         del self[at]
 
     def _on_setitem(self, at, value):
-        self[at] = self.mapping(value)
+        if isinstance(at, slice):
+            self[at] = [self.mapping(v) for v in value]
+        else:
+            self[at] = self.mapping(value)
 
     def _on_insert(self, at, value):
         return self.insert(at, self.mapping(value))

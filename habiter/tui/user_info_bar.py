@@ -29,7 +29,7 @@ class UserInfoBar(urwid.Text):
     def __init__(self, user):
         super().__init__(self.info_markup_for(user), align=urwid.CENTER)
         self.user = user
-        urwid.connect_signal(user, 'reset', self.on_stats_update)
+        urwid.connect_signal(user, 'profile_update', self.on_stats_update)
         urwid.connect_signal(user, 'stats_update', self.on_stats_update)
 
     def on_stats_update(self):
