@@ -25,7 +25,8 @@ class ListModel:
 
     def __setitem__(self, key, value):
         self.list[key] = value
-        urwid.emit_signal(self, 'update_at', key, value)
+        if self.list[key] != value:
+            urwid.emit_signal(self, 'update_at', key, value)
 
     def __getitem__(self, at):
         return self.list[at]
