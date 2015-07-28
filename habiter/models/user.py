@@ -30,6 +30,11 @@ class User:
         deferred.chain_action(self._reset_data, prev_result=True)
         self.synchronizer.add_call(deferred)
 
+    def revive(self):
+        deferred = self.api.revive()
+        deferred.chain_action(self._reset_data, prev_result=True)
+        self.synchronizer.add_call(deferred)
+
     def receive_delta(self, delta_data):
         stats_update = {k: delta_data[k] for k in ('lvl', 'gp', 'exp', 'mp', 'hp')}
         self._data.setdefault('stats', {}).update(stats_update)

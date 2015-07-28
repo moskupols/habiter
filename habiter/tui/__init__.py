@@ -53,4 +53,6 @@ class MainFrame(urwid.Frame):
             self.user.pull()
         if key in ACCEL_SYNC_ONE:
             self.user.synchronizer.perform_one_call()
+        if key in 'r':
+            self.user.revive()
         return super().keypress(size, key)

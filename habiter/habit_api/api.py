@@ -74,11 +74,11 @@ class AuthorizedHabitAPI(HabitAPI):
         }
 
     @_api_call_description
-    def rebirth(self)->DeferredAPICall:
+    def revive(self)->DeferredAPICall:
         return {
             'method': 'post',
-            'path': 'user/rebirth',
-            'description': 'rebirth',
+            'path': 'user/revive',
+            'description': 'revive user',
         }
 
     @_api_call_description
