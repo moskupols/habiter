@@ -66,6 +66,12 @@ class ListModel(MutableSequence):
     def __len__(self):
         return len(self.list)
 
+    def __str__(self):
+        return self.__class__.__name__ + ' on ' + str(self.list)
+
+    def __repr__(self):
+        return self.__class__.__name__ + '(' + repr(self.list) + ')'
+
 
 class AbstractModelWatcher:
     def __init__(self, watched_model, *args, **kwargs):
