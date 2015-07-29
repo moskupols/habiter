@@ -30,10 +30,12 @@ class TestListModel(TestCase):
     @_change_test
     def test_insert_at_end(self, li):
         li.insert(len(li), 9)
+        li.insert(-1, 10)
 
     @_change_test
     def test_set_at(self, li):
         li[2] = 9
+        li[-1] = 2
 
     @_change_test
     def test_set_extended_slice(self, li):

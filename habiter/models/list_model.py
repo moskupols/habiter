@@ -11,6 +11,8 @@ class ListModel(MutableSequence):
         self.list = li or []
 
     def insert(self, at, value):
+        if at < 0:
+            at += len(self)
         self.list.insert(at, value)
         urwid.emit_signal(self, 'insert_at', at, value)
 
@@ -21,6 +23,8 @@ class ListModel(MutableSequence):
         return self.list[at]
 
     def __set_at(self, at, value):
+        if at < 0:
+            at += len(self)
         self.list[at] = value
         urwid.emit_signal(self, 'update_at', at, value)
 
@@ -49,6 +53,8 @@ class ListModel(MutableSequence):
             self.__set_at(key, value)
 
     def __del_at(self, at):
+        if at < 0:
+            at += len(self)
         del self.list[at]
         urwid.emit_signal(self, 'remove_at', at)
 
