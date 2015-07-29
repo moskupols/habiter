@@ -111,9 +111,22 @@ class TestFilterListProxyModel(TestCase):
         self.inner_model[self.inner_list.index(2)] = 4
         self.assertConsistency()
 
+    def test_set_preserving(self):
+        self.inner_model[self.inner_list.index(1)] = 3
+        self.assertConsistency()
+
     def test_set_inserting(self):
         self.inner_model[self.inner_list.index(2)] = 3
         self.assertConsistency()
 
     def test_set_removing(self):
         self.inner_model[self.inner_list.index(1)] = 2
+        self.assertConsistency()
+
+    def test_insert(self):
+        self.inner_model.insert(2, 3)
+        self.assertConsistency()
+
+    def test_insert_ignored(self):
+        self.inner_model.insert(2, 4)
+        self.assertConsistency()

@@ -125,7 +125,6 @@ class MappingListProxyModel(AbstractModelWatcher, ListModel):
 @signalling(ListModel.SIGNALS)
 class FilterListProxyModel(AbstractModelWatcher, ListModel):  # hi qt
     def __init__(self, model: ListModel, filter_: Callable, cls=list):
-        self.source_model = model
         super().__init__(model, cls(model))
 
         self.filter = filter_
@@ -134,7 +133,7 @@ class FilterListProxyModel(AbstractModelWatcher, ListModel):  # hi qt
 
     def set_filter(self, new_filter):
         self.filter = new_filter
-        sub_enum = [(i, v) for i, v in enumerate(self.source_model) if new_filter(v)]
+        sub_enum = [(i, v) for i, v in enumerate(self.watched_model) if new_filter(v)]
         self.subseq, new_list = map(list, zip(*sub_enum)) if len(sub_enum) else ([], [])
         self[:] = new_list
 
