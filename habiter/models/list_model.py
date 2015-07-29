@@ -141,12 +141,19 @@ class FilterListProxyModel(AbstractModelWatcher, ListModel):  # hi qt
 
     def _on_setitem(self, at, value):
         sub_index = bisect_left(self.subseq, at)
-        if sub_index != len(self.subseq):
-            self[sub_index] = value
+        if sub_index != len(self.subseq) and self.subseq[sub_index] == at:
+            if self.filter(value):
+                self[sub_index] = value
+            else:
+                del self.subseq[sub_index]
+                del self[sub_index]
+        elif self.filter(value):
+            self.subseq.insert(sub_index, at)
+            self.insert(sub_index, value)
 
     def _on_remove(self, at):
         sub_index = bisect_left(self.subseq, at)
-        if sub_index != len(self.subseq):
+        if sub_index != len(self.subseq) and self.subseq[sub_index] == at:
             del self.subseq[sub_index]
             del self[sub_index]
 
