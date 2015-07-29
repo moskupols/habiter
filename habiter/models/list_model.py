@@ -91,6 +91,9 @@ class AbstractModelWatcher:
     def _on_insert(self, at, value):
         raise NotImplementedError
 
+    def __repr__(self):
+        return '{}({})'.format(self.__class__.__name__, repr(self.watched_model))
+
 
 @signalling(ListModel.SIGNALS)
 class MappingListProxyModel(AbstractModelWatcher, ListModel):
@@ -106,6 +109,11 @@ class MappingListProxyModel(AbstractModelWatcher, ListModel):
 
     def _on_insert(self, at, value):
         return self.insert(at, self.mapping(value))
+
+    def __str__(self):
+        return '{}({} -> {})'.format(self.__class__.__name__, str(self.watched_model), str(self.list))
+
+    __repr__ = __str__
 
 
 @signalling(ListModel.SIGNALS)
@@ -141,3 +149,8 @@ class FilterListProxyModel(AbstractModelWatcher, ListModel):  # hi qt
         if sub_index != len(self.subseq):
             del self.subseq[sub_index]
             del self[sub_index]
+
+    def __str__(self):
+        return '{}({} -> {})'.format(self.__class__.__name__, str(self.watched_model), str(self.list))
+
+    __repr__ = __str__
