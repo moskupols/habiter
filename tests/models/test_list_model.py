@@ -1,6 +1,6 @@
 from unittest import TestCase
 from functools import wraps
-from habiter.models.list_model import ListModel, FilterListProxyModel
+from habiter.models.list_model import ListModel, FilterListProxyModel, MappingListProxyModel
 
 
 def _change_test(change):
@@ -76,6 +76,33 @@ class TestListModel(TestCase):
 
     def test_get_slice(self):
         self.assertSequenceEqual(self.list[1:4], self.model[1:4])
+
+
+class TestMappingListProxyModel(TestCase):
+    def setUp(self):
+        self.inner_list = [3, 2, 4, 1, 5, 6, 2]
+        self.inner_model = ListModel(self.inner_list)
+        self.mapping = lambda x: x * 10
+        self.proxy = MappingListProxyModel(self.inner_model, self.mapping)
+
+    def expected_list(self):
+        return list(map(self.mapping, self.inner_model))
+
+    def assertConsistency(self):
+        self.assertSequenceEqual(self.expected_list(), self.proxy)
+
+    def test__on_remove(self):
+        del self.inner_model[4]
+        self.assertConsistency()
+
+    def test__on_setitem(self):
+        self.inner_model[1] = 8
+        self.inner_model[2] = self.mapping(self.inner_model[2])
+        self.assertConsistency()
+
+    def test__on_insert(self):
+        self.inner_model.insert(3, 5)
+        self.assertConsistency()
 
 
 class TestFilterListProxyModel(TestCase):
